@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Расход топлива</title>
+<style>
+html { box-sizing: border-box; color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: приложение на весь экран телефона. Сверху ввод, ниже блок результатов тянется до низа экрана. Все размеры в em от ширины экрана. */
+:root {
+  --bg: #eef1ef;
+  --surface: #ffffff;
+  --fg: #1b2623;
+  --muted: #5d6b66;
+  --line: #d5dcd8;
+  --accent: #1f6f5c;
+  --bad: #b3361f;
+  --font-body: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-num: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121a18;
+    --surface: #1a2421;
+    --fg: #e6ede9;
+    --muted: #93a39c;
+    --line: #2b3834;
+    --accent: #4fb89d;
+    --bad: #ff8a73;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121a18;
+  --surface: #1a2421;
+  --fg: #e6ede9;
+  --muted: #93a39c;
+  --line: #2b3834;
+  --accent: #4fb89d;
+  --bad: #ff8a73;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  line-height: 1.4;
+}
+.app {
+  box-sizing: border-box;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8em;
+  font-size: clamp(14px, 4.2vw, 19px);
+  padding-block: 0.7em;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1 { font-size: 1.3em; font-weight: 600; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 0.85em; margin: 0.2em 0 0; }
+
+.inputs { display: grid; gap: 0.7em; }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7em; }
+label { display: grid; gap: 0.35em; min-width: 0; font-size: 0.8em; font-weight: 500; color: var(--muted); letter-spacing: 0.02em; }
+.field { display: flex; align-items: center; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 0.9em; }
+.field:focus-within { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 1px; }
+.field input {
+  flex: 1; min-width: 0;
+  min-height: clamp(48px, 7.5dvh, 66px);
+  border: 0; background: transparent; color: var(--fg);
+  font: 600 1.45em var(--font-num);
+  padding: 0 0.5em;
+  outline: none; font-variant-numeric: tabular-nums;
+}
+.field .unit { padding-right: 0.7em; color: var(--muted); font-size: 0.95em; white-space: nowrap; }
+.hint { color: var(--muted); font-size: 0.78em; margin: 0; }
+.hint.warn { color: var(--bad); font-weight: 500; }
+
+.results {
+  flex: 1;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 0.6em;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 1.1em;
+  padding: 0.6em 1em 0.9em;
+}
+.res { flex: 1; display: flex; flex-direction: column; justify-content: space-around; }
+.line { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.2em 0.8em; padding: 0.7em 0; border-top: 1px solid var(--line); }
+.line:first-child { border-top: 0; }
+.line .name { color: var(--muted); font-size: 0.9em; }
+.line .val { margin-left: auto; font: 600 1.6em var(--font-num); font-variant-numeric: tabular-nums; text-align: right; }
+.line .val small { font: 500 0.5em var(--font-body); color: var(--muted); margin-left: 0.3em; }
+.line.main .val { color: var(--accent); font-size: 2.4em; }
+.line.main .val.neg { color: var(--bad); }
+
+@media (min-width: 600px) {
+  .app { max-width: 30em; margin: 0 auto; font-size: 17px; min-height: 0; padding-block: 24px; }
+  .results { flex: none; }
+  .line { padding: 0.8em 0; }
+}
+@media (max-height: 640px) and (max-width: 599px) {
+  .hint.note, .sub { display: none; }
+  .results { padding-bottom: 0.5em; }
+}
+@media (max-height: 560px) and (max-width: 599px) {
+  .hint.rule { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Расход топлива</h1>
+    <p class="sub">Введите пробег. Норма и факт считаются сразу.</p>
+  </header>
+
+  <section class="inputs">
+    <label for="odo">Одометр до поездки
+      <span class="field"><input id="odo" type="text" inputmode="decimal" autocomplete="off" value="123450"><span class="unit">км</span></span>
+    </label>
+    <div class="row2">
+      <label for="km">Пробег
+        <span class="field"><input id="km" type="text" inputmode="decimal" autocomplete="off" value="250"><span class="unit">км</span></span>
+      </label>
+      <label for="k">Коэффициент
+        <span class="field"><input id="k" type="text" inputmode="decimal" autocomplete="off" value="11,076"><span class="unit">л/100</span></span>
+      </label>
+    </div>
+    <div class="row2">
+      <label for="start">Топливо на начало
+        <span class="field"><input id="start" type="text" inputmode="decimal" autocomplete="off" value="40"><span class="unit">л</span></span>
+      </label>
+      <label for="refuel">Заправка
+        <span class="field"><input id="refuel" type="text" inputmode="decimal" autocomplete="off" value="20"><span class="unit">л</span></span>
+      </label>
+    </div>
+    <p class="hint note">Значения в полях стоят для примера. Пустое поле считается нулём.</p>
+  </section>
+
+  <section class="results">
+    <div class="res">
+      <div class="line"><span class="name">Одометр после поездки</span><span class="val" id="odoEnd">—<small>км</small></span></div>
+      <div class="line"><span class="name">Расход по норме</span><span class="val" id="norm">—<small>л</small></span></div>
+      <div class="line"><span class="name">Расход по факту</span><span class="val" id="fact">—<small>л</small></span></div>
+      <div class="line main"><span class="name">Остаток на конец</span><span class="val" id="end">—<small>л</small></span></div>
+    </div>
+    <p class="hint rule">Факт равен норме, округлённой до десятых по правилам математики. Остаток = на начало + заправка − расход по факту.</p>
+    <p class="hint warn" id="warn" hidden>Топлива не хватает: расход больше, чем было в баке и заправлено.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function num(s) {
+    var v = parseFloat(String(s).replace(/\s/g, "").replace(",", "."));
+    return isFinite(v) ? v : null;
+  }
+  function fmt(v, min, max) {
+    return v.toLocaleString("ru-RU", { minimumFractionDigits: min, maximumFractionDigits: max });
+  }
+  function dash(id) { $(id).innerHTML = "—<small>" + (id === "odoEnd" ? "км" : "л") + "</small>"; }
+  function calc() {
+    var km = num($("km").value), k = num($("k").value);
+    var start = $("start").value.trim() === "" ? 0 : num($("start").value);
+    var refuel = $("refuel").value.trim() === "" ? 0 : num($("refuel").value);
+    var odo = $("odo").value.trim() === "" ? null : num($("odo").value);
+    if (km === null || odo === null) {
+      dash("odoEnd");
+    } else {
+      $("odoEnd").innerHTML = fmt(odo + km, 0, 2) + "<small>км</small>";
+    }
+    if (km === null || k === null) {
+      dash("norm"); dash("fact"); dash("end");
+      $("end").classList.remove("neg");
+      $("warn").hidden = true;
+      return;
+    }
+    var norm = km * k / 100;
+    var fact = Math.round((norm + 1e-9) * 10) / 10;
+    $("norm").innerHTML = fmt(norm, 2, 4) + "<small>л</small>";
+    $("fact").innerHTML = fmt(fact, 1, 1) + "<small>л</small>";
+    if (start === null || refuel === null) {
+      dash("end");
+      $("end").classList.remove("neg");
+      $("warn").hidden = true;
+      return;
+    }
+    var end = Math.round((start + refuel - fact) * 10) / 10;
+    $("end").innerHTML = fmt(end, 1, 1) + "<small>л</small>";
+    $("end").classList.toggle("neg", end < 0);
+    $("warn").hidden = !(end < 0);
+  }
+  ["odo", "km", "k", "start", "refuel"].forEach(function (id) { $(id).addEventListener("input", calc); });
+  calc();
+})();
+</script>
+</body>
+</html>
