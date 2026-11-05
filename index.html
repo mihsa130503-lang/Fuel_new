@@ -20,6 +20,7 @@ img { max-width: 100%; }
   --line: #d5dcd8;
   --accent: #1f6f5c;
   --bad: #b3361f;
+  --on-accent: #ffffff;
   --font-body: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-num: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
@@ -32,6 +33,7 @@ img { max-width: 100%; }
     --line: #2b3834;
     --accent: #4fb89d;
     --bad: #ff8a73;
+    --on-accent: #0c1512;
     color-scheme: dark;
   }
 }
@@ -43,6 +45,7 @@ img { max-width: 100%; }
   --line: #2b3834;
   --accent: #4fb89d;
   --bad: #ff8a73;
+    --on-accent: #0c1512;
   color-scheme: dark;
 }
 html, body { height: 100%; }
@@ -75,11 +78,22 @@ label { display: grid; gap: 0.35em; min-width: 0; font-size: 0.8em; font-weight:
   flex: 1; min-width: 0;
   min-height: clamp(48px, 7.5dvh, 66px);
   border: 0; background: transparent; color: var(--fg);
-  font: 600 1.45em var(--font-num);
-  padding: 0 0.5em;
+  font: 600 1.3em var(--font-num);
+  padding: 0 0.4em;
   outline: none; font-variant-numeric: tabular-nums;
 }
-.field .unit { padding-right: 0.7em; color: var(--muted); font-size: 0.95em; white-space: nowrap; }
+.field .unit { padding-right: 0.5em; color: var(--muted); font-size: 0.95em; white-space: nowrap; }
+.clear { flex: none; display: grid; place-items: center; width: 1.45em; height: 1.45em; margin-right: 0.25em; padding: 0; border: 0; border-radius: 50%; background: var(--line); color: var(--muted); font: 600 1.05em/1 var(--font-body); cursor: pointer; }
+.clear[hidden] { display: none; }
+.clear:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.actions { display: grid; grid-template-columns: 2fr 1fr; gap: 0.7em; }
+.btn { min-height: clamp(48px, 7.5dvh, 64px); border-radius: 0.9em; border: 1px solid var(--line); font: 600 1.05em var(--font-body); cursor: pointer; padding: 0 0.6em; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.ghost { background: var(--surface); color: var(--fg); }
+.btn:active { transform: scale(0.98); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.results.stale .res, .results.stale .hint.rule { opacity: 0.4; }
+.hint.stale-note { color: var(--accent); font-weight: 600; }
 .hint { color: var(--muted); font-size: 0.78em; margin: 0; }
 .hint.warn { color: var(--bad); font-weight: 500; }
 
@@ -109,6 +123,7 @@ label { display: grid; gap: 0.35em; min-width: 0; font-size: 0.8em; font-weight:
 }
 @media (max-height: 560px) and (max-width: 599px) {
   .hint.rule { display: none; }
+  .btn { min-height: 42px; }
 }
 </style>
 </head>
@@ -121,25 +136,29 @@ label { display: grid; gap: 0.35em; min-width: 0; font-size: 0.8em; font-weight:
 
   <section class="inputs">
     <label for="odo">Одометр до поездки
-      <span class="field"><input id="odo" type="text" inputmode="decimal" autocomplete="off" value="123450"><span class="unit">км</span></span>
+      <span class="field"><input id="odo" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><button type="button" class="clear" aria-label="Очистить" hidden>×</button><span class="unit">км</span></span>
     </label>
     <div class="row2">
       <label for="km">Пробег
-        <span class="field"><input id="km" type="text" inputmode="decimal" autocomplete="off" value="250"><span class="unit">км</span></span>
+        <span class="field"><input id="km" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><button type="button" class="clear" aria-label="Очистить" hidden>×</button><span class="unit">км</span></span>
       </label>
       <label for="k">Коэффициент
-        <span class="field"><input id="k" type="text" inputmode="decimal" autocomplete="off" value="11,076"><span class="unit">л/100</span></span>
+        <span class="field"><input id="k" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><button type="button" class="clear" aria-label="Очистить" hidden>×</button><span class="unit">л/100</span></span>
       </label>
     </div>
     <div class="row2">
       <label for="start">Топливо на начало
-        <span class="field"><input id="start" type="text" inputmode="decimal" autocomplete="off" value="40"><span class="unit">л</span></span>
+        <span class="field"><input id="start" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><button type="button" class="clear" aria-label="Очистить" hidden>×</button><span class="unit">л</span></span>
       </label>
       <label for="refuel">Заправка
-        <span class="field"><input id="refuel" type="text" inputmode="decimal" autocomplete="off" value="20"><span class="unit">л</span></span>
+        <span class="field"><input id="refuel" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><button type="button" class="clear" aria-label="Очистить" hidden>×</button><span class="unit">л</span></span>
       </label>
     </div>
-    <p class="hint note">Значения в полях стоят для примера. Пустое поле считается нулём.</p>
+    <div class="actions">
+      <button type="button" class="btn primary" id="calcBtn">Рассчитать</button>
+      <button type="button" class="btn ghost" id="resetBtn">Сбросить</button>
+    </div>
+    <p class="hint note">Пустые поля «Топливо на начало» и «Заправка» считаются нулём.</p>
   </section>
 
   <section class="results">
@@ -150,6 +169,7 @@ label { display: grid; gap: 0.35em; min-width: 0; font-size: 0.8em; font-weight:
       <div class="line main"><span class="name">Остаток на конец</span><span class="val" id="end">—<small>л</small></span></div>
     </div>
     <p class="hint rule">Факт равен норме, округлённой до десятых по правилам математики. Остаток = на начало + заправка − расход по факту.</p>
+    <p class="hint stale-note" id="stale" hidden>Данные изменены. Нажмите «Рассчитать».</p>
     <p class="hint warn" id="warn" hidden>Топлива не хватает: расход больше, чем было в баке и заправлено.</p>
   </section>
 </div>
@@ -196,7 +216,38 @@ label { display: grid; gap: 0.35em; min-width: 0; font-size: 0.8em; font-weight:
     $("end").classList.toggle("neg", end < 0);
     $("warn").hidden = !(end < 0);
   }
-  ["odo", "km", "k", "start", "refuel"].forEach(function (id) { $(id).addEventListener("input", calc); });
+  var calculated = false;
+  var results = document.querySelector(".results");
+  function markStale() {
+    if (!calculated) return;
+    results.classList.add("stale");
+    $("stale").hidden = false;
+  }
+  function run() {
+    calc();
+    calculated = true;
+    results.classList.remove("stale");
+    $("stale").hidden = true;
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    try { results.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
+  }
+  document.querySelectorAll(".field").forEach(function (f) {
+    var inp = f.querySelector("input"), btn = f.querySelector(".clear");
+    function sync() { btn.hidden = inp.value === ""; }
+    inp.addEventListener("input", function () { sync(); markStale(); });
+    inp.addEventListener("keydown", function (e) { if (e.key === "Enter") run(); });
+    btn.addEventListener("click", function () { inp.value = ""; sync(); markStale(); inp.focus(); });
+    sync();
+  });
+  $("calcBtn").addEventListener("click", run);
+  $("resetBtn").addEventListener("click", function () {
+    document.querySelectorAll(".field input").forEach(function (i) { i.value = ""; });
+    document.querySelectorAll(".clear").forEach(function (c) { c.hidden = true; });
+    calc();
+    calculated = false;
+    results.classList.remove("stale");
+    $("stale").hidden = true;
+  });
   calc();
 })();
 </script>
